@@ -16,7 +16,7 @@ namespace KK_Ahegao {
     class KK_Ahegao : BaseUnityPlugin {
 
         public const string Name = "KK_Ahegao";
-        public const string GUID = "kk_ahegao";
+        public const string GUID = "KK_Ahegao";
         public const string Version = "1.11";
 
 
