@@ -11,9 +11,15 @@ using UnityEngine.SceneManagement;
 using KeyboardShortcut = BepInEx.Configuration.KeyboardShortcut;
 
 namespace KK_Ahegao {
-    [BepInPlugin(nameof(KK_Ahegao), nameof(KK_Ahegao), "1.10")]
+    [BepInPlugin(Name, GUID, Version)]
     [BepInProcess("Koikatu"), BepInProcess("Koikatsu Party")]
     class KK_Ahegao : BaseUnityPlugin {
+
+        public const string Name = "KK_Ahegao";
+        public const string GUID = "kk_ahegao";
+        public const string Version = "1.11";
+
+
         #region Config properties      
         public static ConfigEntry<uint> AhegaoCount { get; private set; }
         public static ConfigEntry<bool> cfgSetEyeBrows { get; private set; }
