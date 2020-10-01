@@ -17,7 +17,7 @@ namespace KK_Ahegao {
 
         public const string Name = "KK_Ahegao";
         public const string GUID = "KK_Ahegao";
-        public const string Version = "1.9";
+        public const string Version = "1.11";
 
 
         #region Config properties      
