@@ -12,7 +12,7 @@ using KeyboardShortcut = BepInEx.Configuration.KeyboardShortcut;
 
 namespace KK_Ahegao {
     [BepInPlugin(Name, GUID, Version)]
-    [BepInProcess("Koikatu"), BepInProcess("Koikatsu Party")]
+    [BepInProcess("Koikatu"), BepInProcess("Koikatsu Party"), BepInProcess("KoikatuVR"), BepInProcess("Koikatsu Party VR")]
     class KK_Ahegao : BaseUnityPlugin {
 
         public const string Name = "KK_Ahegao";
@@ -48,12 +48,18 @@ namespace KK_Ahegao {
         private static bool fastEnough;
         private static List<ChaControl> lstFemale;
         private static bool isDarkness = false;
+        private static bool isVR = false;
         private static string animName;
         private static bool isValidMode = false;
         private static bool isKiss = false;
 
         private static readonly Vector2 originalOffset = new Vector2(-1f, -0.8f);
         private static Vector2 newOffset;
+
+        private static Type hSceneType;
+        private static BaseLoader hSceneProc;
+        private static HFlag hflags;
+        private static Func<bool> isKissActionDelegate; 
 
         // private List<HActionBase> lstProc = null;
 
@@ -63,6 +69,10 @@ namespace KK_Ahegao {
             //ConvertConfig();
 
             var detectDark = typeof(ChaInfo).GetProperty("exType", BindingFlags.Public | BindingFlags.Instance) != null;
+            hSceneType = Type.GetType("VRHScene, Assembly-CSharp");
+            isVR = hSceneType != null;
+            if (!isVR)
+                hSceneType = Type.GetType("HSceneProc, Assembly-CSharp");
 
             var s = "Settings";
 
@@ -99,28 +109,51 @@ namespace KK_Ahegao {
         }
 
         void SceneLoaded(Scene s, LoadSceneMode lsm) {
-            var ihs = Singleton<HSceneProc>.Instance != null;
-            if (!inHScene && ihs) {
+            hSceneProc = (BaseLoader)FindObjectOfType(hSceneType);
+            if (!inHScene && hSceneProc != null) {
                 hold = false;
                 fastEnough = false;
                 animName = "";
                 lstFemale = null;
-                StartCoroutine(ResolveLstFemale());
+                StartCoroutine(SceneLoadedAsync(hSceneProc));   
             }
-            inHScene = ihs;
         }
 
 
-        IEnumerator ResolveLstFemale() {
+        IEnumerator SceneLoadedAsync (BaseLoader scene) {
+            var traverse = Traverse.Create(scene);
+
             while (lstFemale == null || lstFemale?.Count == 0) {
-                lstFemale = (List<ChaControl>)AccessTools.Field(typeof(HSceneProc), "lstFemale").GetValue(Singleton<HSceneProc>.Instance);
+                lstFemale = traverse.Field("lstFemale").GetValue<List<ChaControl>>();
                 yield return null;
             }
+            object handCtrlObj = null;
+            while (handCtrlObj == null) {
+                if (isVR)
+                    handCtrlObj = traverse.Field("vrHands").GetValue<object[]>().FirstOrDefault(x => x != null);
+                else
+                    handCtrlObj = traverse.Field("hand").GetValue<object>();
+
+                yield return null;
+            }
+
+            var handCtrlType = Type.GetType(isVR ? "VRHandCtrl, Assembly-CSharp" : "HandCtrl, Assembly-CSharp");
+            var isKissMethod = AccessTools.Method(handCtrlType, "IsKissAction");
+            isKissActionDelegate = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), handCtrlObj, isKissMethod);
+            hflags = traverse.Field("flags").GetValue<HFlag>();
+
             // lstProc = (List<HActionBase>)AccessTools.Field(typeof(HSceneProc), "lstProc").GetValue(Singleton<HSceneProc>.Instance);
             ReloadConfig();
             ResetAhegao();    //Reset orgasm counter on H scene entry.                     
-            if (hi == null) hi = Harmony.CreateAndPatchAll(typeof(KK_Ahegao));
-
+            if (hi == null) {
+                hi = Harmony.CreateAndPatchAll(typeof(KK_Ahegao));
+                if (isVR) {
+                    hi.Patch(
+                        AccessTools.Method(hSceneType, "EndProc"),
+                        postfix: new HarmonyMethod(typeof(KK_Ahegao), nameof(EndProc)));
+                }             
+            }
+            inHScene = true;
         }
 
         private static void RemovePatches() {
@@ -164,11 +197,10 @@ namespace KK_Ahegao {
 
             foreach (var cc in lstFemale) {
                 if (cc == null) return;
-                var hsp = Singleton<HSceneProc>.Instance;
-                if (hsp == null) return;
+                if (hSceneProc == null) return;
 
-                if (hsp.hand) {
-                    var ik = hsp.hand.IsKissAction();
+                if (isKissActionDelegate?.Target != null) {
+                    var ik = isKissActionDelegate.Invoke();
                     var isKissJustChanged = (!isKiss && ik);
                     isKiss = ik;
                     if (isKissJustChanged) RefreshFace();
@@ -176,7 +208,7 @@ namespace KK_Ahegao {
                 if (isKiss) return;
                 if (!inHScene || lstFemale == null || lstFemale.Count == 0) return;
                 //Force refresh of face when adjusting speed.
-                var fe = hsp.flags.speed > 2f;
+                var fe = hflags.speed > 2f;
                 if (fe != fastEnough) {
                     fastEnough = fe;
                     RefreshFace();
@@ -188,7 +220,7 @@ namespace KK_Ahegao {
                 if (animName != an) {
                     hold = false;
                     animName = an;
-                    string mode = hsp.flags.mode.ToString();
+                    string mode = hflags.mode.ToString();
                     isValidMode = mode == "sonyu" || mode == "aibu" || mode == "sonyu3P" || ((mode == "sonyu3PMMF") && (cfgDarkEnabled.Value));
                     isDarkness = mode == "sonyu3PMMF";
                     var hl = an.Contains("Loop1") || an.Contains("Loop2") || an.Contains("OLoop") || an.Contains("IN_Start") || an.Contains("IN_Loop") || an.Contains("_IN_A");
@@ -197,7 +229,7 @@ namespace KK_Ahegao {
                     else if (rf) {
                         if (!(mode == "aibu")) //Ignore caress mode.
                         {
-                            hsp.flags.speed = 0f;
+                            hflags.speed = 0f;
                             RefreshFace();
                         }
                     }
@@ -209,8 +241,7 @@ namespace KK_Ahegao {
             if (!inHScene || lstFemale == null || lstFemale.Count == 0) return;
             foreach (var cc in lstFemale) {
                 if (cc == null) return;
-                var hsp = Singleton<HSceneProc>.Instance;
-                if (hsp == null) return;
+                if (hSceneProc == null) return;
                 Roll(cc, ShouldProc() && !ShouldNotProc(cc) && cfgRollEnabled.Value);
             }
         }
