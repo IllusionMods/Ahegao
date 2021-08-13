@@ -15,4 +15,4 @@ For the expressions with number entries, the number corresponds to the expressio
 All of the individual options can be disabled or enabled to your liking.
 
 ## Credits
-This plugin was originally written by essu. The vast, vast majority of the code is still as he wrote it. Some additional work was done by @DeathWeasel1337. This plugin is hosted on this repo for ease of access/maintenance, with permission kindly granted from both.
+This plugin was originally written by essu. The vast, vast majority of the code is still as he wrote it. Some additional work was done by @DeathWeasel1337. This plugin is hosted on this repo for ease of access/maintenance, with permission kindly granted from both. https://github.com/MayouKurayami implemented the VR support.
