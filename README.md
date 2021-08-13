@@ -4,7 +4,7 @@ This plugin adds ahegao to Koikatsu H-scenes.
 Requires [BepInEx 5.3](https://github.com/BepInEx/BepInEx/releases).
 
 ### Installation
-Download the latest .dll from the [releases tab](https://github.com/Kokaiinum/KK_Ahegao/releases) and place it in the BepInEx\Plugins folder.
+Download the latest .zip from the [releases tab](https://github.com/Kokaiinum/KK_Ahegao/releases) and extract it into your game folder.
 
 ## Usage
 By default, the ahegao state is triggered once 3 orgasms have occured and the speed is above 50%. Both the speed check and the orgasm count can be configured in the plugin settings.
