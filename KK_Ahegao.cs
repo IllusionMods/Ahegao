@@ -17,7 +17,7 @@ namespace KK_Ahegao {
 
         public const string Name = "KK_Ahegao";
         public const string GUID = "KK_Ahegao";
-        public const string Version = "1.11";
+        public const string Version = "1.12";
 
 
         #region Config properties      
@@ -26,6 +26,7 @@ namespace KK_Ahegao {
         public static ConfigEntry<bool> cfgSetEyes { get; private set; }
         public static ConfigEntry<bool> cfgSetMouth { get; private set; }
         public static ConfigEntry<bool> cfgSpeedToggle { get; private set; }
+        public static ConfigEntry<int> cfgMinSpeed { get; private set; }
         public static ConfigEntry<int> cfgAhegaoEyebrow { get; private set; }
         public static ConfigEntry<int> cfgAhegaoEyes { get; private set; }
         public static ConfigEntry<int> cfgAhegaoMouth { get; private set; }
@@ -83,6 +84,8 @@ namespace KK_Ahegao {
             cfgSetEyes = Config.Bind(s, "Set Eyes", true, "Whether eyes will be changed during ahegao.");
             cfgSetMouth = Config.Bind(s, "Set Mouth", true, "Whether the mouth will be changed during ahegao.");
             cfgSpeedToggle = Config.Bind(s, "Speed Toggle", true, "When enabled, ahegao only happens above 50% speed.");
+            cfgMinSpeed = Config.Bind(s, "Minimum Speed", 66, new ConfigDescription(
+                "Minimum speed to toggle ahegao. Only checked if the \n speed toggle is enabled in the first place.", new AcceptableValueRange<int>(0, 100)));
 
             cfgAhegaoEyebrow = Config.Bind(s, "Ahegao Eyebrow ID", 2, "ID of the eyebrow expression to set during ahegao.");
             cfgAhegaoEyes = Config.Bind(s, "Ahegao Eye ID", 25, "ID of the eye expression to set during ahegao.");
@@ -208,7 +211,7 @@ namespace KK_Ahegao {
                 if (isKiss) return;
                 if (!inHScene || lstFemale == null || lstFemale.Count == 0) return;
                 //Force refresh of face when adjusting speed.
-                var fe = hflags.speed > 2f;
+                var fe = hflags.speed > (cfgMinSpeed.Value * 0.03f); //3f is the max speed, but cfgMinSpeed displays between 1 and 100 to the user for ease of use
                 if (fe != fastEnough) {
                     fastEnough = fe;
                     RefreshFace();
