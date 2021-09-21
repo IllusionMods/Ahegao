@@ -85,44 +85,32 @@ namespace KK_Ahegao
             cfgSetEyes = Config.Bind(s, "Set Eyes", true, "Whether eyes will be changed during ahegao.");
             cfgSetMouth = Config.Bind(s, "Set Mouth", true, "Whether the mouth will be changed during ahegao.");
             cfgSpeedToggle = Config.Bind(s, "Speed Toggle", true, "When enabled, ahegao only happens above 50% speed.");
-            cfgMinSpeed = Config.Bind(s, "Minimum Speed", 66, new ConfigDescription(
-                "Minimum speed to toggle ahegao. Only checked if the \n speed toggle is enabled in the first place.",
-                new AcceptableValueRange<int>(0, 100)));
+            cfgMinSpeed = Config.Bind(s, "Minimum Speed", 66, new ConfigDescription("Minimum speed to toggle ahegao. Only checked if the \n speed toggle is enabled in the first place.", new AcceptableValueRange<int>(0, 100)));
 
-            cfgAhegaoEyebrow = Config.Bind(s, "Ahegao Eyebrow ID", 2,
-                "ID of the eyebrow expression to set during ahegao.");
+            cfgAhegaoEyebrow = Config.Bind(s, "Ahegao Eyebrow ID", 2, "ID of the eyebrow expression to set during ahegao.");
             cfgAhegaoEyes = Config.Bind(s, "Ahegao Eye ID", 25, "ID of the eye expression to set during ahegao.");
             cfgAhegaoMouth = Config.Bind(s, "Ahegao Mouth ID", 24, "ID of the mouth expression to set during ahegao.");
 
-            cfgRollEnabled = Config.Bind(s, "Eye Rolling", true,
-                "When enabled, the eyes will roll back during the ahegao state.");
-            cfgEyeY = Config.Bind(s, "Eye Roll Amount", 0.25f,
-                new ConfigDescription("How much the eyes should roll.", new AcceptableValueRange<float>(0, 0.5f)));
+            cfgRollEnabled = Config.Bind(s, "Eye Rolling", true, "When enabled, the eyes will roll back during the ahegao state.");
+            cfgEyeY = Config.Bind(s, "Eye Roll Amount", 0.25f, new ConfigDescription("How much the eyes should roll.", new AcceptableValueRange<float>(0, 0.5f)));
             newOffset = new Vector2(originalOffset.x, originalOffset.y - cfgEyeY.Value * 2f);
-            cfgEyeY.SettingChanged += (object sender, EventArgs args) =>
+            cfgEyeY.SettingChanged += (sender, args) =>
             {
                 newOffset.y = originalOffset.y - cfgEyeY.Value * 2f;
             };
 
 
             cfgSetTears = Config.Bind(s, "Set Tears", true, "Whether tears will be displayed during ahegao or not.");
-            cfgSetBlush = Config.Bind(s, "Set Blush", true,
-                "Whether the custom blush amount will be displayed during ahegao.");
-            cfgAhegaoTears = Config.Bind<byte>(s, "Tears Level", 0,
-                new ConfigDescription("The level of tears to display during ahegao.\n0 is none.",
-                    new AcceptableValueList<byte>(new byte[] { 0, 1, 2, 3 })));
-            cfgAhegaoBlush = Config.Bind(s, "Blush Level", 0f,
-                new ConfigDescription("The level of blush displayed during ahegao.\n0 for none.",
-                    new AcceptableValueRange<float>(0f, 1f)));
+            cfgSetBlush = Config.Bind(s, "Set Blush", true, "Whether the custom blush amount will be displayed during ahegao.");
+            cfgAhegaoTears = Config.Bind<byte>(s, "Tears Level", 0, new ConfigDescription("The level of tears to display during ahegao.\n0 is none.", new AcceptableValueList<byte>(0, 1, 2, 3)));
+            cfgAhegaoBlush = Config.Bind(s, "Blush Level", 0f, new ConfigDescription("The level of blush displayed during ahegao.\n0 for none.", new AcceptableValueRange<float>(0f, 1f)));
 
-            AhegaoHotkey = Config.Bind("", "Reset Ahegao Hotkey", new KeyboardShortcut(KeyCode.O),
-                "Resets the orgasm count to zero.");
+            AhegaoHotkey = Config.Bind("", "Reset Ahegao Hotkey", new KeyboardShortcut(KeyCode.O), "Resets the orgasm count to zero.");
 
             if (detectDark)
-                cfgDarkEnabled = Config.Bind(s, "Darkness Toggle", true,
-                    "Whether or not ahegao can trigger in the Darkness mode.");
+                cfgDarkEnabled = Config.Bind(s, "Darkness Toggle", true, "Whether or not ahegao can trigger in the Darkness mode.");
 
-            Config.SettingChanged += (object sender, SettingChangedEventArgs args) => { RefreshFace(); };
+            Config.SettingChanged += (sender, args) => { RefreshFace(); };
         }
 
         private void SceneLoaded(Scene s, LoadSceneMode lsm)
@@ -139,13 +127,13 @@ namespace KK_Ahegao
         }
 
 
-        private IEnumerator SceneLoadedAsync(Object scene)
+        private IEnumerator SceneLoadedAsync(Object proc)
         {
-            var traverse = Traverse.Create(scene);
+            var traverse = Traverse.Create(proc);
 
             while (lstFemale == null || lstFemale?.Count == 0)
             {
-                lstFemale = traverse.Field("lstFemale").GetValue<List<ChaControl>>();
+                lstFemale = traverse.Field(nameof(HSceneProc.lstFemale)).GetValue<List<ChaControl>>();
                 yield return null;
             }
 
@@ -155,15 +143,15 @@ namespace KK_Ahegao
                 if (isVR)
                     handCtrlObj = traverse.Field("vrHands").GetValue<object[]>().FirstOrDefault(x => x != null);
                 else
-                    handCtrlObj = traverse.Field("hand").GetValue<object>();
+                    handCtrlObj = traverse.Field(nameof(HSceneProc.hand)).GetValue<object>();
 
                 yield return null;
             }
 
             var handCtrlType = Type.GetType(isVR ? "VRHandCtrl, Assembly-CSharp" : "HandCtrl, Assembly-CSharp");
-            var isKissMethod = AccessTools.Method(handCtrlType, "IsKissAction");
+            var isKissMethod = AccessTools.Method(handCtrlType, nameof(HandCtrl.IsKissAction));
             isKissActionDelegate = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), handCtrlObj, isKissMethod);
-            hflags = traverse.Field("flags").GetValue<HFlag>();
+            hflags = traverse.Field(nameof(HSceneProc.flags)).GetValue<HFlag>();
 
             // lstProc = (List<HActionBase>)AccessTools.Field(typeof(HSceneProc), "lstProc").GetValue(Singleton<HSceneProc>.Instance);
             ReloadConfig();
@@ -173,7 +161,7 @@ namespace KK_Ahegao
                 hi = Harmony.CreateAndPatchAll(typeof(Hooks));
                 if (isVR)
                 {
-                    hi.Patch(AccessTools.Method(hSceneType, "EndProc"),
+                    hi.Patch(AccessTools.Method(hSceneType, nameof(HSceneProc.EndProc)),
                         postfix: new HarmonyMethod(typeof(Hooks), nameof(Hooks.EndProc)));
                 }
             }
@@ -263,17 +251,15 @@ namespace KK_Ahegao
                     hold = false;
                     animName = an;
                     var mode = hflags.mode.ToString();
-                    isValidMode = mode == "sonyu" || mode == "aibu" || mode == "sonyu3P" ||
-                                  mode == "sonyu3PMMF" && cfgDarkEnabled.Value;
+                    isValidMode = mode == "sonyu" || mode == "aibu" || mode == "sonyu3P" || mode == "sonyu3PMMF" && cfgDarkEnabled.Value;
                     isDarkness = mode == "sonyu3PMMF";
                     var hl = an.Contains("Loop1") || an.Contains("Loop2") || an.Contains("OLoop") ||
                              an.Contains("IN_Start") || an.Contains("IN_Loop") || an.Contains("_IN_A");
                     var rf = an.Contains("Idle") || an.Contains("OUT_A") || an.Contains("OUT_Start") ||
-                             an.Contains(
-                                 "OUT_Loop"); // || an.Contains("_IN_A") || an.Contains("OUT_Start") || an.Contains("OUT_Loop") || an.Contains("OUT_A");
+                             an.Contains("OUT_Loop"); // || an.Contains("_IN_A") || an.Contains("OUT_Start") || an.Contains("OUT_Loop") || an.Contains("OUT_A");
                     if (hl) hold = true;
                     else if (rf)
-                        if (!(mode == "aibu")) //Ignore caress mode.
+                        if (mode != "aibu") //Ignore caress mode.
                         {
                             hflags.speed = 0f;
                             RefreshFace();
@@ -335,42 +321,42 @@ namespace KK_Ahegao
         private static class Hooks
         {
             [HarmonyPostfix]
-            [HarmonyPatch(typeof(HFlag), "AddAibuOrg")] //Foreplay
+            [HarmonyPatch(typeof(HFlag), nameof(HFlag.AddAibuOrg))] //Foreplay
             public static void AddAibuOrg()
             {
                 AddOrgasm();
             }
 
             [HarmonyPostfix]
-            [HarmonyPatch(typeof(HFlag), "AddSonyuOrg")] //Vaginal
+            [HarmonyPatch(typeof(HFlag), nameof(HFlag.AddSonyuOrg))] //Vaginal
             public static void AddSonyuOrg()
             {
                 AddOrgasm();
             }
 
             [HarmonyPostfix]
-            [HarmonyPatch(typeof(HFlag), "AddSonyuAnalOrg")] //Anal
+            [HarmonyPatch(typeof(HFlag), nameof(HFlag.AddSonyuAnalOrg))] //Anal
             public static void AddSonyuAnalOrg()
             {
                 AddOrgasm();
             }
 
             [HarmonyPrefix]
-            [HarmonyPatch(typeof(ChaControl), "ChangeEyebrowPtn")]
+            [HarmonyPatch(typeof(ChaControl), nameof(ChaControl.ChangeEyebrowPtn))]
             public static void ChangeEyebrowPtn(ChaControl __instance, ref int ptn)
             {
                 if (cfgSetEyeBrows.Value) ChangePtn(ref __instance, ref ptn, cfgAhegaoEyebrow.Value);
             }
 
             [HarmonyPrefix]
-            [HarmonyPatch(typeof(ChaControl), "ChangeEyesPtn")]
+            [HarmonyPatch(typeof(ChaControl), nameof(ChaControl.ChangeEyesPtn))]
             public static void ChangeEyesPtn(ChaControl __instance, ref int ptn)
             {
                 if (cfgSetEyes.Value) ChangePtn(ref __instance, ref ptn, cfgAhegaoEyes.Value);
             }
 
             [HarmonyPrefix]
-            [HarmonyPatch(typeof(ChaControl), "ChangeMouthPtn")]
+            [HarmonyPatch(typeof(ChaControl), nameof(ChaControl.ChangeMouthPtn))]
             public static void ChangeMouthPtn(ChaControl __instance, ref int ptn)
             {
                 if (cfgSetMouth.Value) ChangePtn(ref __instance, ref ptn, cfgAhegaoMouth.Value);
@@ -395,7 +381,7 @@ namespace KK_Ahegao
             }
 
             [HarmonyPostfix]
-            [HarmonyPatch(typeof(HSceneProc), "EndProc")]
+            [HarmonyPatch(typeof(HSceneProc), nameof(HSceneProc.EndProc))]
             public static void EndProc()
             {
                 if (!inHScene) return;
@@ -404,7 +390,7 @@ namespace KK_Ahegao
             }
 
             [HarmonyPostfix]
-            [HarmonyPatch(typeof(FaceListCtrl), "SetFace")]
+            [HarmonyPatch(typeof(FaceListCtrl), nameof(FaceListCtrl.SetFace))]
             public static void SetFace(ChaControl _chara, bool __result)
             {
                 if (!__result) return;
