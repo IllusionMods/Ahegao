@@ -82,7 +82,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="KK_Ahegao.cs" />
+    <Compile Include="AhegaoPlugin.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -125,10 +125,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="KK_Ahegao.cs" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <Compile Include="AhegaoPlugin.cs" />
   </ItemGroup>
   <Import Project="..\Shared\Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -8,13 +8,12 @@ using System.Collections;
 using BepInEx.Configuration;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
-using KeyboardShortcut = BepInEx.Configuration.KeyboardShortcut;
 using Object = UnityEngine.Object;
 
 namespace KK_Ahegao
 {
     [BepInPlugin(Name, GUID, Version)]
-    partial class KK_Ahegao : BaseUnityPlugin
+    public partial class AhegaoPlugin : BaseUnityPlugin
     {
         public const string Version = "1.12";
 
@@ -42,18 +41,18 @@ namespace KK_Ahegao
 
         #endregion
 
-        private static uint OrgasmCount = 0;
-        private static bool inHScene = false;
+        private static uint OrgasmCount;
+        private static bool inHScene;
 
-        private static Harmony hi = null;
+        private static Harmony hi;
         private static bool hold;
         private static bool fastEnough;
         private static List<ChaControl> lstFemale;
-        private static bool isDarkness = false;
-        private static bool isVR = false;
+        private static bool isDarkness;
+        private static bool isVR;
         private static string animName;
-        private static bool isValidMode = false;
-        private static bool isKiss = false;
+        private static bool isValidMode;
+        private static bool isKiss;
 
         private static readonly Vector2 originalOffset = new Vector2(-1f, -0.8f);
         private static Vector2 newOffset;
@@ -65,7 +64,7 @@ namespace KK_Ahegao
 
         // private List<HActionBase> lstProc = null;
 
-        public KK_Ahegao()
+        public AhegaoPlugin()
         {
             SceneManager.sceneLoaded += SceneLoaded;
 
@@ -99,10 +98,10 @@ namespace KK_Ahegao
                 "When enabled, the eyes will roll back during the ahegao state.");
             cfgEyeY = Config.Bind(s, "Eye Roll Amount", 0.25f,
                 new ConfigDescription("How much the eyes should roll.", new AcceptableValueRange<float>(0, 0.5f)));
-            newOffset = new Vector2(originalOffset.x, originalOffset.y - (cfgEyeY.Value * 2f));
+            newOffset = new Vector2(originalOffset.x, originalOffset.y - cfgEyeY.Value * 2f);
             cfgEyeY.SettingChanged += (object sender, EventArgs args) =>
             {
-                newOffset.y = (originalOffset.y - (cfgEyeY.Value * 2f));
+                newOffset.y = originalOffset.y - cfgEyeY.Value * 2f;
             };
 
 
@@ -111,7 +110,7 @@ namespace KK_Ahegao
                 "Whether the custom blush amount will be displayed during ahegao.");
             cfgAhegaoTears = Config.Bind<byte>(s, "Tears Level", 0,
                 new ConfigDescription("The level of tears to display during ahegao.\n0 is none.",
-                    new AcceptableValueList<byte>(new byte[] {0, 1, 2, 3})));
+                    new AcceptableValueList<byte>(new byte[] { 0, 1, 2, 3 })));
             cfgAhegaoBlush = Config.Bind(s, "Blush Level", 0f,
                 new ConfigDescription("The level of blush displayed during ahegao.\n0 for none.",
                     new AcceptableValueRange<float>(0f, 1f)));
@@ -120,15 +119,13 @@ namespace KK_Ahegao
                 "Resets the orgasm count to zero.");
 
             if (detectDark)
-            {
                 cfgDarkEnabled = Config.Bind(s, "Darkness Toggle", true,
                     "Whether or not ahegao can trigger in the Darkness mode.");
-            }
 
             Config.SettingChanged += (object sender, SettingChangedEventArgs args) => { RefreshFace(); };
         }
 
-        void SceneLoaded(Scene s, LoadSceneMode lsm)
+        private void SceneLoaded(Scene s, LoadSceneMode lsm)
         {
             hSceneProc = FindObjectOfType(hSceneType);
             if (!inHScene && hSceneProc != null)
@@ -142,7 +139,7 @@ namespace KK_Ahegao
         }
 
 
-        IEnumerator SceneLoadedAsync(Object scene)
+        private IEnumerator SceneLoadedAsync(Object scene)
         {
             var traverse = Traverse.Create(scene);
 
@@ -165,7 +162,7 @@ namespace KK_Ahegao
 
             var handCtrlType = Type.GetType(isVR ? "VRHandCtrl, Assembly-CSharp" : "HandCtrl, Assembly-CSharp");
             var isKissMethod = AccessTools.Method(handCtrlType, "IsKissAction");
-            isKissActionDelegate = (Func<bool>) Delegate.CreateDelegate(typeof(Func<bool>), handCtrlObj, isKissMethod);
+            isKissActionDelegate = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), handCtrlObj, isKissMethod);
             hflags = traverse.Field("flags").GetValue<HFlag>();
 
             // lstProc = (List<HActionBase>)AccessTools.Field(typeof(HSceneProc), "lstProc").GetValue(Singleton<HSceneProc>.Instance);
@@ -173,12 +170,11 @@ namespace KK_Ahegao
             ResetAhegao(); //Reset orgasm counter on H scene entry.                     
             if (hi == null)
             {
-                hi = Harmony.CreateAndPatchAll(typeof(KK_Ahegao));
+                hi = Harmony.CreateAndPatchAll(typeof(Hooks));
                 if (isVR)
                 {
-                    hi.Patch(
-                        AccessTools.Method(hSceneType, "EndProc"),
-                        postfix: new HarmonyMethod(typeof(KK_Ahegao), nameof(EndProc)));
+                    hi.Patch(AccessTools.Method(hSceneType, "EndProc"),
+                        postfix: new HarmonyMethod(typeof(Hooks), nameof(Hooks.EndProc)));
                 }
             }
 
@@ -227,7 +223,7 @@ namespace KK_Ahegao
             RefreshFace();
         }
 
-        void Update()
+        private void Update()
         {
             if (!inHScene || lstFemale == null || lstFemale.Count == 0) return;
             if (AhegaoHotkey.Value.IsDown()) ResetAhegao();
@@ -241,7 +237,7 @@ namespace KK_Ahegao
                 if (isKissActionDelegate?.Target != null)
                 {
                     var ik = isKissActionDelegate.Invoke();
-                    var isKissJustChanged = (!isKiss && ik);
+                    var isKissJustChanged = !isKiss && ik;
                     isKiss = ik;
                     if (isKissJustChanged) RefreshFace();
                 }
@@ -250,8 +246,8 @@ namespace KK_Ahegao
                 if (!inHScene || lstFemale == null || lstFemale.Count == 0) return;
                 //Force refresh of face when adjusting speed.
                 var fe = hflags.speed >
-                         (cfgMinSpeed.Value *
-                          0.03f); //3f is the max speed, but cfgMinSpeed displays between 1 and 100 to the user for ease of use
+                         cfgMinSpeed.Value *
+                         0.03f; //3f is the max speed, but cfgMinSpeed displays between 1 and 100 to the user for ease of use
                 if (fe != fastEnough)
                 {
                     fastEnough = fe;
@@ -266,9 +262,9 @@ namespace KK_Ahegao
                 {
                     hold = false;
                     animName = an;
-                    string mode = hflags.mode.ToString();
+                    var mode = hflags.mode.ToString();
                     isValidMode = mode == "sonyu" || mode == "aibu" || mode == "sonyu3P" ||
-                                  ((mode == "sonyu3PMMF") && (cfgDarkEnabled.Value));
+                                  mode == "sonyu3PMMF" && cfgDarkEnabled.Value;
                     isDarkness = mode == "sonyu3PMMF";
                     var hl = an.Contains("Loop1") || an.Contains("Loop2") || an.Contains("OLoop") ||
                              an.Contains("IN_Start") || an.Contains("IN_Loop") || an.Contains("_IN_A");
@@ -277,18 +273,16 @@ namespace KK_Ahegao
                                  "OUT_Loop"); // || an.Contains("_IN_A") || an.Contains("OUT_Start") || an.Contains("OUT_Loop") || an.Contains("OUT_A");
                     if (hl) hold = true;
                     else if (rf)
-                    {
                         if (!(mode == "aibu")) //Ignore caress mode.
                         {
                             hflags.speed = 0f;
                             RefreshFace();
                         }
-                    }
                 }
             }
         }
 
-        void LateUpdate()
+        private void LateUpdate()
         {
             if (!inHScene || lstFemale == null || lstFemale.Count == 0) return;
             foreach (var cc in lstFemale)
@@ -299,85 +293,29 @@ namespace KK_Ahegao
             }
         }
 
-        [HarmonyPostfix, HarmonyPatch(typeof(HFlag), "AddAibuOrg")] //Foreplay
-        public static void AddAibuOrg() => AddOrgasm();
-
-        [HarmonyPostfix, HarmonyPatch(typeof(HFlag), "AddSonyuOrg")] //Vaginal
-        public static void AddSonyuOrg() => AddOrgasm();
-
-        [HarmonyPostfix, HarmonyPatch(typeof(HFlag), "AddSonyuAnalOrg")] //Anal
-        public static void AddSonyuAnalOrg() => AddOrgasm();
-
-        [HarmonyPrefix, HarmonyPatch(typeof(ChaControl), "ChangeEyebrowPtn")]
-        public static void ChangeEyebrowPtn(ChaControl __instance, ref int ptn)
+        private static bool ShouldNotProc(ChaControl female)
         {
-            if (cfgSetEyeBrows.Value) ChangePtn(ref __instance, ref ptn, cfgAhegaoEyebrow.Value);
+            return female == null || !isValidMode ||
+                   OrgasmCount < AhegaoCount.Value || !inHScene || isKiss;
         }
 
-        [HarmonyPrefix, HarmonyPatch(typeof(ChaControl), "ChangeEyesPtn")]
-        public static void ChangeEyesPtn(ChaControl __instance, ref int ptn)
+        private static bool ShouldProc()
         {
-            if (cfgSetEyes.Value) ChangePtn(ref __instance, ref ptn, cfgAhegaoEyes.Value);
+            return !(cfgSpeedToggle.Value && !fastEnough || !hold);
         }
-
-        [HarmonyPrefix, HarmonyPatch(typeof(ChaControl), "ChangeMouthPtn")]
-        public static void ChangeMouthPtn(ChaControl __instance, ref int ptn)
-        {
-            if (cfgSetMouth.Value) ChangePtn(ref __instance, ref ptn, cfgAhegaoMouth.Value);
-        }
-
-        private static void ChangePtn(ref ChaControl __instance, ref int ptn, int newPtn)
-        {
-            //if we're not in a H-scene or are kissing, do not change the pattern
-            if (!isValidMode) return;
-            if (isKiss) return;
-            if (!lstFemale.Contains(__instance) || OrgasmCount < AhegaoCount.Value || !inHScene) return;
-            if (cfgSpeedToggle.Value && !fastEnough || !hold)
-            {
-                //don't set the face to 0 during darkness since that isn't the default
-                if (isDarkness) return;
-                else ptn = 0;
-            }
-            else ptn = newPtn;
-        }
-
-        [HarmonyPostfix, HarmonyPatch(typeof(HSceneProc), "EndProc")]
-        public static void EndProc()
-        {
-            if (!inHScene) return;
-            inHScene = false;
-            RemovePatches();
-        }
-
-        [HarmonyPostfix, HarmonyPatch(typeof(FaceListCtrl), "SetFace")]
-        public static void SetFace(ChaControl _chara, bool __result)
-        {
-            if (!__result) return;
-            if (ShouldNotProc(_chara)) return;
-            if (!ShouldProc()) return;
-            if (cfgSetTears.Value) _chara.tearsLv = cfgAhegaoTears.Value;
-            if (cfgSetBlush.Value) _chara.ChangeHohoAkaRate(cfgAhegaoBlush.Value);
-        }
-
-        private static bool ShouldNotProc(ChaControl female) => female == null || !isValidMode ||
-                                                                OrgasmCount < AhegaoCount.Value || !inHScene || isKiss;
-
-        private static bool ShouldProc() => !(cfgSpeedToggle.Value && !fastEnough || !hold);
         //functionally equivalent to (!cfgSpeedToggle.Value && hold) || (fastEnough && hold)
 
         private static void Roll(ChaControl target, bool roll)
         {
             if (roll)
             {
-                foreach (EyeLookMaterialControll eLMC in target.eyeLookMatCtrl)
-                {
-                    foreach (EyeLookMaterialControll.TexState tS in eLMC.texStates)
+                foreach (var eLMC in target.eyeLookMatCtrl)
+                    foreach (var tS in eLMC.texStates)
                     {
-                        Vector2 textureOffset = eLMC._renderer.material.GetTextureOffset(tS.texID);
+                        var textureOffset = eLMC._renderer.material.GetTextureOffset(tS.texID);
                         textureOffset.y -= cfgEyeY.Value;
                         eLMC._renderer.material.SetTextureOffset(tS.texID, textureOffset);
                     }
-                }
 
                 // Unlike the above, this offset doesn't reset itself each frame, so we have to make sure it doesn't
                 // just shoot off into space. The multiplication by 2 in the newOffset creation is because they seem to be on different scales, and
@@ -393,5 +331,89 @@ namespace KK_Ahegao
                 target.rendEye[1].material.SetTextureOffset(ChaShader._expression, originalOffset);
             }
         }
+
+        private static class Hooks
+        {
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(HFlag), "AddAibuOrg")] //Foreplay
+            public static void AddAibuOrg()
+            {
+                AddOrgasm();
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(HFlag), "AddSonyuOrg")] //Vaginal
+            public static void AddSonyuOrg()
+            {
+                AddOrgasm();
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(HFlag), "AddSonyuAnalOrg")] //Anal
+            public static void AddSonyuAnalOrg()
+            {
+                AddOrgasm();
+            }
+
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(ChaControl), "ChangeEyebrowPtn")]
+            public static void ChangeEyebrowPtn(ChaControl __instance, ref int ptn)
+            {
+                if (cfgSetEyeBrows.Value) ChangePtn(ref __instance, ref ptn, cfgAhegaoEyebrow.Value);
+            }
+
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(ChaControl), "ChangeEyesPtn")]
+            public static void ChangeEyesPtn(ChaControl __instance, ref int ptn)
+            {
+                if (cfgSetEyes.Value) ChangePtn(ref __instance, ref ptn, cfgAhegaoEyes.Value);
+            }
+
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(ChaControl), "ChangeMouthPtn")]
+            public static void ChangeMouthPtn(ChaControl __instance, ref int ptn)
+            {
+                if (cfgSetMouth.Value) ChangePtn(ref __instance, ref ptn, cfgAhegaoMouth.Value);
+            }
+
+            private static void ChangePtn(ref ChaControl __instance, ref int ptn, int newPtn)
+            {
+                //if we're not in a H-scene or are kissing, do not change the pattern
+                if (!isValidMode) return;
+                if (isKiss) return;
+                if (!lstFemale.Contains(__instance) || OrgasmCount < AhegaoCount.Value || !inHScene) return;
+                if (cfgSpeedToggle.Value && !fastEnough || !hold)
+                {
+                    //don't set the face to 0 during darkness since that isn't the default
+                    if (isDarkness) return;
+                    else ptn = 0;
+                }
+                else
+                {
+                    ptn = newPtn;
+                }
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(HSceneProc), "EndProc")]
+            public static void EndProc()
+            {
+                if (!inHScene) return;
+                inHScene = false;
+                RemovePatches();
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(FaceListCtrl), "SetFace")]
+            public static void SetFace(ChaControl _chara, bool __result)
+            {
+                if (!__result) return;
+                if (ShouldNotProc(_chara)) return;
+                if (!ShouldProc()) return;
+                if (cfgSetTears.Value) _chara.tearsLv = cfgAhegaoTears.Value;
+                if (cfgSetBlush.Value) _chara.ChangeHohoAkaRate(cfgAhegaoBlush.Value);
+            }
+        }
+
     }
 }
