@@ -401,13 +401,13 @@ namespace KK_Ahegao
 
             [HarmonyPostfix]
             [HarmonyPatch(typeof(FaceListCtrl), nameof(FaceListCtrl.SetFace))]
-            public static void SetFace(ChaControl chara, bool __result)
+            public static void SetFace(ChaControl _chara, bool __result)
             {
                 if (!__result) return;
-                if (ShouldNotProc(chara)) return;
+                if (ShouldNotProc(_chara)) return;
                 if (!ShouldProc()) return;
-                if (CfgSetTears.Value) chara.tearsLv = CfgAhegaoTears.Value;
-                if (CfgSetBlush.Value) chara.ChangeHohoAkaRate(CfgAhegaoBlush.Value);
+                if (CfgSetTears.Value) _chara.tearsLv = CfgAhegaoTears.Value;
+                if (CfgSetBlush.Value) _chara.ChangeHohoAkaRate(CfgAhegaoBlush.Value);
             }
         }
     }
