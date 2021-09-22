@@ -15,7 +15,7 @@ namespace KK_Ahegao
     [BepInPlugin(Name, GUID, Version)]
     public partial class AhegaoPlugin : BaseUnityPlugin
     {
-        public const string Version = "1.12";
+        public const string Version = "2.0";
 
         #region Config properties
 
