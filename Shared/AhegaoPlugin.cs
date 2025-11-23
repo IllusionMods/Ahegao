@@ -1,21 +1,30 @@
 ﻿using System;
-using BepInEx;
-using HarmonyLib;
-using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Collections;
+using BepInEx;
 using BepInEx.Configuration;
-using System.Collections.Generic;
+using HarmonyLib;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace KK_Ahegao
 {
+    // Only use KKAPI for constants and package references so no need to add a dependency for it
+    [BepInProcess(KKAPI.KoikatuAPI.GameProcessName)]
+    [BepInProcess(KKAPI.KoikatuAPI.VRProcessName)]
+#if KK
+    [BepInProcess(KKAPI.KoikatuAPI.GameProcessNameSteam)]
+    [BepInProcess(KKAPI.KoikatuAPI.VRProcessNameSteam)]
+#endif
     [BepInPlugin(Name, GUID, Version)]
-    public partial class AhegaoPlugin : BaseUnityPlugin
+    public class AhegaoPlugin : BaseUnityPlugin
     {
-        public const string Version = "2.0";
+        public const string Version = Constants.Version;
+        public const string Name = "KK_Ahegao";
+        public const string GUID = "KK_Ahegao";
 
         #region Config properties
 
@@ -176,7 +185,7 @@ namespace KK_Ahegao
         {
             if (_hi != null)
             {
-                _hi.UnpatchAll(_hi.Id);
+                _hi.UnpatchSelf();
                 _hi = null;
             }
         }
