@@ -23,8 +23,13 @@ namespace KK_Ahegao
     public class AhegaoPlugin : BaseUnityPlugin
     {
         public const string Version = Constants.Version;
+#if KK
         public const string Name = "KK_Ahegao";
         public const string GUID = "KK_Ahegao";
+#elif KKS
+        public const string Name = "KKS_Ahegao";
+        public const string GUID = "KKS_Ahegao";
+#endif
 
         #region Config properties
 
